@@ -60,10 +60,10 @@ int get_lines_in_file(FILE* fin) {
   while (1) {
     ch = fgetc(fin);
     if (ch == '\n') {
-      ++n_lines;
+      n_lines++;
     } else if (ch == EOF) {
       if (last_ch! = '\n') {
-        ++n_lines;
+        n_lines++;
       } // Capture non-newline-terminated last line.
       break;
     }
@@ -581,14 +581,13 @@ void clean_up(void) {
   int index;
   for (index = 1; index < = num_barcode; index++) {
     free(barcodes[index]->sequence);
-    if (is_paired_reads > 0) {
-      free(barcodes[index]->sequenceRev);
-    }
-    if (is_dual_indexing_reads > 0) {
-      free(barcodes[index]->sequence2);
-    }
+    
+    if (is_paired_reads > 0) free(barcodes[index]->sequenceRev);
+    if (is_dual_indexing_reads > 0) free(barcodes[index]->sequence2);
+
     free(barcodes[index]);
   }
+  
   for (index = 1; index < = num_hairpin; index++) {
     free(hairpins[index]->sequence);
     free(hairpins[index]);
