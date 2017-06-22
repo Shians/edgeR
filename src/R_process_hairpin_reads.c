@@ -510,39 +510,39 @@ void process_hairpin_reads(char *filename, char *filename2) {
   }
 }
 
-void initialise(int ispaired, int isdualindexing,
-                int barcodestart, int barcodeend,
-                int barcode2start, int barcode2end,
-                int barcodestartrev, int barcodeendrev,
-                int hairpinstart, int hairpinend,
-                int allowshifting, int shiftingnbase,
-                int allowmismatch, int barcodemismatch, int hairpinmismatch,
-                int allowshiftedmismatch, int verbose) {
+void initialise(int is_paired, int is_dual_indexing,
+                int bar_code_start, int barcode_end,
+                int barcode2_start, int barcode2_end,
+                int bar_code_start_rev, int barcode_endrev,
+                int hairpin_start, int hairpin_end,
+                int allow_shifting, int shifting_n_base,
+                int allow_mismatch, int barcode_mismatch, int hairpin_mismatch,
+                int allow_shifted_mismatch, int verbose) {
 
   g_num_barcode = 0;
   g_num_hairpin = 0;
 
-  g_is_paired_reads = ispaired;
-  g_is_dual_indexing_reads = isdualindexing;
-  g_barcode_start = barcodestart;
-  g_barcode_end = barcodeend;
-  g_barcode2_start = barcode2start;
-  g_barcode2_end = barcode2end;
-  g_barcode_start_rev = barcodestartrev;
-  g_barcode_end_rev = barcodeendrev;
-  g_hairpin_start = hairpinstart;
-  g_hairpin_end = hairpinend;
-  g_barcode_length = barcodeend - barcodestart + 1;
-  g_barcode2_length = barcode2end - barcode2start + 1;
-  g_barcode_length_rev = barcodeendrev - barcodestartrev + 1;
-  g_hairpin_length = hairpinend - hairpinstart + 1;
+  g_is_paired_reads = is_paired;
+  g_is_dual_indexing_reads = is_dual_indexing;
+  g_barcode_start = bar_code_start;
+  g_barcode_end = barcode_end;
+  g_barcode2_start = barcode2_start;
+  g_barcode2_end = barcode2_end;
+  g_barcode_start_rev = bar_code_start_rev;
+  g_barcode_end_rev = barcode_endrev;
+  g_hairpin_start = hairpin_start;
+  g_hairpin_end = hairpin_end;
+  g_barcode_length = barcode_end - bar_code_start + 1;
+  g_barcode2_length = barcode2_end - barcode2_start + 1;
+  g_barcode_length_rev = barcode_endrev - bar_code_start_rev + 1;
+  g_hairpin_length = hairpin_end - hairpin_start + 1;
 
-  g_allow_shifting = allowshifting;
-  g_shifting_n_base = shiftingnbase;
-  g_allow_mismatch = allowmismatch;
-  g_barcode_n_mismatch = barcodemismatch;
-  g_hairpin_n_mismatch = hairpinmismatch;
-  g_allow_shifted_mismatch = allowshiftedmismatch;
+  g_allow_shifting = allow_shifting;
+  g_shifting_n_base = shifting_n_base;
+  g_allow_mismatch = allow_mismatch;
+  g_barcode_n_mismatch = barcode_mismatch;
+  g_hairpin_n_mismatch = hairpin_mismatch;
+  g_allow_shifted_mismatch = allow_shifted_mismatch;
   g_is_verbose = verbose;
 
   g_num_read = 0;
