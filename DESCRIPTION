@@ -16,3 +16,4 @@ biocViews: GeneExpression, Transcription, AlternativeSplicing,
         TimeCourse, SAGE, Sequencing, ChIPSeq, RNASeq, BatchEffect,
         MultipleComparison, Normalization, QualityControl
 NeedsCompilation: yes
+RoxygenNote: 6.0.1
