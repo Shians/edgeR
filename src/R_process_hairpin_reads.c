@@ -121,6 +121,7 @@ void read_in_barcodes(char* filename) {
   Rprintf(" -- Number of Barcodes : %d\n", g_num_barcode);
 }
 
+
 bool valid_match(char *sequence1, char *seq2, int length, int threshold) {
   int mismatch_base_count = 0;
   for (int i = 0; i < length; i++) {
@@ -235,6 +236,7 @@ int locate_barcode_dual_indexing(char *a_barcode, char *a_barcode2) {
   return -1;
 }
 
+
 int locate_exact_match_hairpin(char *a_hairpin) {
   int imin = 1;
   int imax = g_num_hairpin;
@@ -321,6 +323,7 @@ int locate_hairpin(char *a_hairpin, char *read) {
   return -1;
 }
 
+
 int barcode_compare(a_barcode *barcode1, a_barcode *barcode2) {
   int ans = strncmp(barcode1->seq1, barcode2->seq1, g_barcode_length);
   if (ans == 0) {
@@ -334,6 +337,7 @@ int barcode_compare(a_barcode *barcode1, a_barcode *barcode2) {
   return ans;
 }
 
+
 void sort_barcodes(void) {
   a_barcode *temp;
   for (int i = 1; i < g_num_barcode; i++) {
@@ -346,6 +350,7 @@ void sort_barcodes(void) {
     }
   }
 }
+
 
 void read_in_hairpins(char *filename) {
   FILE *fin;
@@ -377,6 +382,7 @@ void read_in_hairpins(char *filename) {
   Rprintf(" -- Number of Hairpins : %d\n", g_num_hairpin);
 }
 
+
 void sort_hairpins(void) {
   a_hairpin *temp;
   for (int i = 1; i < g_num_hairpin; i++) {
@@ -389,6 +395,7 @@ void sort_hairpins(void) {
     }
   }
 }
+
 
 void process_hairpin_reads(char *filename, char *filename2) {
   FILE *fin = NULL;
@@ -500,6 +507,7 @@ void process_hairpin_reads(char *filename, char *filename2) {
   }
 }
 
+
 void initialise(int is_paired, int is_dual_indexing,
                 int bar_code_start, int barcode_end,
                 int barcode2_start, int barcode2_end,
@@ -541,6 +549,7 @@ void initialise(int is_paired, int is_dual_indexing,
   g_bc_hp_count = 0;
 }
 
+
 void output_summary_table(char *output) {
   FILE *fout;
   fout = fopen(output, "w");
@@ -554,6 +563,7 @@ void output_summary_table(char *output) {
   fclose(fout);
 }
 
+
 void check_hairpins(void) {
   for (int p = 1; p <= g_num_hairpin; p++) {
     for (int q = 0; q < g_hairpin_length; q++) {
@@ -564,6 +574,7 @@ void check_hairpins(void) {
     }
   }
 }
+
 
 void clean_up(void) {
   for (int index = 1; index <= g_num_barcode; index++) {
@@ -587,6 +598,7 @@ void clean_up(void) {
   free(g_summary);
 }
 
+
 void allocate_summary_table(void) {
   g_summary = ALLOC(g_num_hairpin+1, long *);
   for (int i = 0; i <= g_num_hairpin; i++) {
@@ -599,6 +611,7 @@ void allocate_summary_table(void) {
 	  }
   }
 }
+
 
 void processHairpinReads(int *g_is_paired_reads, int *g_is_dual_indexing_reads,
                          char **file, char **file2, int *filecount,
