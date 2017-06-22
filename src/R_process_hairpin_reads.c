@@ -181,8 +181,7 @@ int locate_barcode_paired(char *a_barcode, char *a_barcode_rev) {
       // same forward sequence, compare reverse barcode sequence
       if (strncmp(barcodes[imid]->seq_rev, a_barcode_rev, g_barcode_length_rev) < 0) {
         imin = imid + 1;
-      } else if (strncmp(barcodes[imid]->seq_rev, a_barcode_rev,
-                         g_barcode_length_rev) > 0) {
+      } else if (strncmp(barcodes[imid]->seq_rev, a_barcode_rev, g_barcode_length_rev) > 0) {
         imax = imid - 1;
       } else {
         return barcodes[imid]->original_pos;
@@ -193,8 +192,7 @@ int locate_barcode_paired(char *a_barcode, char *a_barcode_rev) {
   if (g_allow_mismatch > 0) {
     for (int i = 1; i <= g_num_barcode; i++) {
       if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length) &&
-          VALID_MATCH(a_barcode_rev, barcodes[i]->seq_rev,
-                      g_barcode_length_rev)) {
+          VALID_MATCH(a_barcode_rev, barcodes[i]->seq_rev, g_barcode_length_rev)) {
         return barcodes[i]->original_pos;
       }
     }
