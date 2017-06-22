@@ -1,22 +1,24 @@
 #include <R.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
 
 #define BLOCKSIZE 10000000
 #define ALLOC(n,t) (t *) calloc(n, sizeof(t))
+#define VALID_MATCH(seq1, seq2, len) valid_match(seq1, seq2, len, g_barcode_n_mismatch)
 
 typedef struct {
-  char   *sequence;
-  char   *sequence2;
-  char   *sequenceRev;
+  char   *seq1;
+  char   *seq2;
+  char   *seq_rev;
   int    original_pos;
 } a_barcode;
 
 typedef struct {
-   char   *sequence;
+   char   *seq;
    int    original_pos;
 } a_hairpin;
 
@@ -95,21 +97,21 @@ void read_in_barcodes(char* filename) {
   while ((readline = fgets(line, len, fin)) != NULL) {
     count++;
     new_barcode = ALLOC(1, a_barcode);
-    new_barcode->sequence = ALLOC(g_barcode_length,char);
-    strncpy(new_barcode->sequence, line, g_barcode_length);
+    new_barcode->seq1 = ALLOC(g_barcode_length,char);
+    strncpy(new_barcode->seq1, line, g_barcode_length);
     new_barcode->original_pos = count;
     if (g_is_paired_reads > 0) {
       token = strtok(line, "\t");
-      token = strtok(NULL, "\t");
-      new_barcode->sequenceRev = ALLOC(g_barcode_length_rev, char);
-      strncpy(new_barcode->sequenceRev, token, g_barcode_length_rev);
+      token = strtok(NULL, "\t"); // next token
+      new_barcode->seq_rev = ALLOC(g_barcode_length_rev, char);
+      strncpy(new_barcode->seq_rev, token, g_barcode_length_rev);
     } else if (g_is_dual_indexing_reads > 0) {
       token = strtok(line, "\t");
-      token = strtok(NULL, "\t");
-      new_barcode->sequence2 = ALLOC(g_barcode_length_rev, char);
-      strncpy(new_barcode->sequence2, token, g_barcode2_length);
+      token = strtok(NULL, "\t"); // next token
+      new_barcode->seq2 = ALLOC(g_barcode_length_rev, char);
+      strncpy(new_barcode->seq2, token, g_barcode2_length);
     } else {
-      new_barcode->sequenceRev = NULL;
+      new_barcode->seq_rev = NULL;
     };
     barcodes[count] = new_barcode;
   }
@@ -119,32 +121,31 @@ void read_in_barcodes(char* filename) {
   Rprintf(" -- Number of Barcodes : %d\n", g_num_barcode);
 }
 
-int valid_match(char *sequence1, char *sequence2, int length, int threshold) {
-  int i_base;
+bool valid_match(char *sequence1, char *seq2, int length, int threshold) {
   int mismatch_base_count = 0;
-  for (i_base = 0; i_base < length; i_base++) {
-    if (sequence1[i_base] != sequence2[i_base]) {
+  for (int i = 0; i < length; i++) {
+    if (sequence1[i] != seq2[i]) {
       mismatch_base_count++;
     }
   }
+
   if (mismatch_base_count <= threshold) {
-    return 1;
+    return true;
   } else {
-    return -1;
+    return false;
   }
 }
 
 int locate_barcode(char *a_barcode) {
-  int imin, imax, imid;
-  imin = 1;
-  imax = g_num_barcode;
+  int imin = 1;
+  int imax = g_num_barcode;
 
   while (imax >= imin) {
-    imid = (imax + imin) / 2;
+    int imid = (imax + imin) / 2;
 
-    if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) < 0) {
+    if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) < 0) {
       imin = imid + 1;
-    } else if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) > 0) {
+    } else if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) > 0) {
       imax = imid - 1;
     } else {
       return barcodes[imid]->original_pos;
@@ -154,7 +155,7 @@ int locate_barcode(char *a_barcode) {
   if (g_allow_mismatch > 0) {
     int i;
     for (i = 1; i <= g_num_barcode; i++) {
-      if (valid_match(a_barcode, barcodes[i]->sequence, g_barcode_length, g_barcode_n_mismatch) > 0) {
+      if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length)) {
         return barcodes[i]->original_pos;
       }
     }
@@ -165,22 +166,21 @@ int locate_barcode(char *a_barcode) {
 
 
 int locate_barcode_paired(char *a_barcode, char *a_barcode_rev) {
-  int imin, imax, imid;
-  imin = 1;
-  imax = g_num_barcode;
+  int imin = 1;
+  int imax = g_num_barcode;
 
   while (imax >= imin) {
-    imid = (imax + imin) / 2;
+    int imid = (imax + imin) / 2;
     // compare forward barcode sequence
-    if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) < 0) {
+    if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) < 0) {
       imin = imid + 1;
-    } else if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) > 0) {
+    } else if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) > 0) {
       imax = imid - 1;
     } else {
       // same forward sequence, compare reverse barcode sequence
-      if (strncmp(barcodes[imid]->sequenceRev, a_barcode_rev, g_barcode_length_rev) < 0) {
+      if (strncmp(barcodes[imid]->seq_rev, a_barcode_rev, g_barcode_length_rev) < 0) {
         imin = imid + 1;
-      } else if (strncmp(barcodes[imid]->sequenceRev, a_barcode_rev, g_barcode_length_rev) > 0) {
+      } else if (strncmp(barcodes[imid]->seq_rev, a_barcode_rev, g_barcode_length_rev) > 0) {
         imax = imid - 1;
       } else {
         return barcodes[imid]->original_pos;
@@ -189,10 +189,9 @@ int locate_barcode_paired(char *a_barcode, char *a_barcode_rev) {
   }
 
   if (g_allow_mismatch > 0) {
-    int i;
-    for (i = 1; i <= g_num_barcode; i++) {
-      if ((valid_match(a_barcode, barcodes[i]->sequence, g_barcode_length, g_barcode_n_mismatch) > 0) &&
-          (valid_match(a_barcode_rev, barcodes[i]->sequenceRev, g_barcode_length_rev, g_barcode_n_mismatch) > 0)) {
+    for (int i = 1; i <= g_num_barcode; i++) {
+      if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length) &&
+          VALID_MATCH(a_barcode_rev, barcodes[i]->seq_rev, g_barcode_length_rev)) {
          return barcodes[i]->original_pos;
       }
     }
@@ -202,23 +201,22 @@ int locate_barcode_paired(char *a_barcode, char *a_barcode_rev) {
 }
 
 
-int locate_barcode_dualIndexing(char *a_barcode, char *a_barcode2) {
-  int imin, imax, imid;
-  imin = 1;
-  imax = g_num_barcode;
+int locate_barcode_dual_indexing(char *a_barcode, char *a_barcode2) {
+  int imin = 1;
+  int imax = g_num_barcode;
 
   while (imax >= imin) {
-    imid = (imax + imin) / 2;
+    int imid = (imax + imin) / 2;
     // compare forward barcode sequence 1
-    if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) < 0) {
+    if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) < 0) {
       imin = imid + 1;
-    } else if (strncmp(barcodes[imid]->sequence, a_barcode, g_barcode_length) > 0) {
+    } else if (strncmp(barcodes[imid]->seq1, a_barcode, g_barcode_length) > 0) {
       imax = imid - 1;
     } else {
       // same forward sequence 1, compare forward barcode sequence 2
-      if (strncmp(barcodes[imid]->sequence2, a_barcode2, g_barcode2_length) < 0) {
+      if (strncmp(barcodes[imid]->seq2, a_barcode2, g_barcode2_length) < 0) {
         imin = imid + 1;
-      } else if (strncmp(barcodes[imid]->sequence2, a_barcode2, g_barcode2_length) > 0) {
+      } else if (strncmp(barcodes[imid]->seq2, a_barcode2, g_barcode2_length) > 0) {
         imax = imid - 1;
       } else {
         return barcodes[imid]->original_pos;
@@ -229,8 +227,8 @@ int locate_barcode_dualIndexing(char *a_barcode, char *a_barcode2) {
   if (g_allow_mismatch > 0) {
     int i;
     for (i = 1; i <= g_num_barcode; i++) {
-      if ((valid_match(a_barcode, barcodes[i]->sequence, g_barcode_length, g_barcode_n_mismatch) > 0) &&
-	    (valid_match(a_barcode2, barcodes[i]->sequence2, g_barcode2_length, g_barcode_n_mismatch) > 0)) {
+      if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length) &&
+	        VALID_MATCH(a_barcode2, barcodes[i]->seq2, g_barcode2_length)) {
         return barcodes[i]->original_pos;
       }
     }
@@ -239,17 +237,16 @@ int locate_barcode_dualIndexing(char *a_barcode, char *a_barcode2) {
   return -1;
 }
 
-int locate_exactmatch_hairpin(char *a_hairpin) {
-  int imin, imax, imid;
-  imin = 1;
-  imax = g_num_hairpin;
+int locate_exact_match_hairpin(char *a_hairpin) {
+  int imin = 1;
+  int imax = g_num_hairpin;
 
   while (imax >= imin) {
-    imid = (imax + imin) / 2;
+    int imid = (imax + imin) / 2;
 
-    if (strncmp(hairpins[imid]->sequence, a_hairpin, g_hairpin_length) < 0) {
+    if (strncmp(hairpins[imid]->seq, a_hairpin, g_hairpin_length) < 0) {
       imin = imid + 1;
-    } else if (strncmp(hairpins[imid]->sequence, a_hairpin, g_hairpin_length) > 0) {
+    } else if (strncmp(hairpins[imid]->seq, a_hairpin, g_hairpin_length) > 0) {
       imax = imid - 1;
     } else {
       return hairpins[imid]->original_pos;
@@ -262,7 +259,7 @@ int locate_exactmatch_hairpin(char *a_hairpin) {
 int locate_mismatch_hairpin(char *a_hairpin) {
   int i;
   for (i = 1; i <= g_num_hairpin; i++) {
-    if (valid_match(a_hairpin, hairpins[i]->sequence, g_hairpin_length, g_hairpin_n_mismatch) > 0) {
+    if (VALID_MATCH(a_hairpin, hairpins[i]->seq, g_hairpin_length)) {
       return hairpins[i]->original_pos;
     }
   }
@@ -274,7 +271,7 @@ int locate_hairpin(char *a_hairpin, char *read) {
   int hairpin_index;
 
   // check if a perfect match exists
-  hairpin_index = locate_exactmatch_hairpin(a_hairpin);
+  hairpin_index = locate_exact_match_hairpin(a_hairpin);
   if (hairpin_index > 0) {
     return hairpin_index;
   }
@@ -292,12 +289,11 @@ int locate_hairpin(char *a_hairpin, char *read) {
     char *shifted_hairpin_str;
     shifted_hairpin_str = ALLOC(g_hairpin_length, char);
 
-    int index;
     // check shifting leftwards
-    for (index = 1; index <= g_shifting_n_base; index++) {
+    for (int index = 1; index <= g_shifting_n_base; index++) {
       strncpy(shifted_hairpin_str, read + g_hairpin_start - 1 - index, g_hairpin_length);
 
-	    hairpin_index = locate_exactmatch_hairpin(shifted_hairpin_str);
+	    hairpin_index = locate_exact_match_hairpin(shifted_hairpin_str);
 
       // check if mismatch on a shifted position is allowed and try to match
       if ((hairpin_index <= 0) && (g_allow_shifted_mismatch)) {
@@ -310,10 +306,10 @@ int locate_hairpin(char *a_hairpin, char *read) {
     }
 
 	// check shifting rightwards
-    for (index = 1; index <= g_shifting_n_base; index++) {
+    for (int index = 1; index <= g_shifting_n_base; index++) {
       strncpy(shifted_hairpin_str, read + g_hairpin_start - 1 + index, g_hairpin_length);
 
-      hairpin_index = locate_exactmatch_hairpin(shifted_hairpin_str);
+      hairpin_index = locate_exact_match_hairpin(shifted_hairpin_str);
 
       if ((hairpin_index <= 0) && (g_allow_shifted_mismatch)) {
         hairpin_index = locate_mismatch_hairpin(shifted_hairpin_str);
@@ -329,13 +325,12 @@ int locate_hairpin(char *a_hairpin, char *read) {
 }
 
 int barcode_compare(a_barcode *barcode1, a_barcode *barcode2) {
-  int ans;
-  ans = strncmp(barcode1->sequence, barcode2->sequence, g_barcode_length);
+  int ans = strncmp(barcode1->seq1, barcode2->seq1, g_barcode_length);
   if (ans == 0) {
     if (g_is_paired_reads > 0) {
-      ans = strncmp(barcode1->sequenceRev, barcode2->sequenceRev, g_barcode_length_rev);
+      ans = strncmp(barcode1->seq_rev, barcode2->seq_rev, g_barcode_length_rev);
     } else if (g_is_dual_indexing_reads > 0) {
-      ans = strncmp(barcode1->sequence2, barcode2->sequence2, g_barcode2_length);
+      ans = strncmp(barcode1->seq2, barcode2->seq2, g_barcode2_length);
     }
   }
 
@@ -343,14 +338,13 @@ int barcode_compare(a_barcode *barcode1, a_barcode *barcode2) {
 }
 
 void sort_barcodes(void) {
-  int i, j;
   a_barcode *temp;
-  for (i = 1; i < g_num_barcode; i++) {
-    for (j = i+1; j <= g_num_barcode; j++) {
+  for (int i = 1; i < g_num_barcode; i++) {
+    for (int j = i+1; j <= g_num_barcode; j++) {
       if (barcode_compare(barcodes[i], barcodes[j]) > 0) {
-	temp = barcodes[i];
-	barcodes[i] = barcodes[j];
-	barcodes[j] = temp;
+        temp = barcodes[i];
+        barcodes[i] = barcodes[j];
+        barcodes[j] = temp;
       }
     }
   }
@@ -375,9 +369,9 @@ void read_in_hairpins(char *filename) {
   while ((readline = fgets(line, len, fin)) != NULL) {
     count++;
     new_hairpin = ALLOC(1, a_hairpin);
-    new_hairpin->sequence = ALLOC(g_hairpin_length, char);
+    new_hairpin->seq = ALLOC(g_hairpin_length, char);
     new_hairpin->original_pos = count;
-    strncpy(new_hairpin->sequence, line, g_hairpin_length);
+    strncpy(new_hairpin->seq, line, g_hairpin_length);
     hairpins[count] = new_hairpin;
   }
   fclose(fin);
@@ -387,14 +381,13 @@ void read_in_hairpins(char *filename) {
 }
 
 void sort_hairpins(void) {
-  int i, j;
   a_hairpin *temp;
-  for (i = 1; i < g_num_hairpin; i++) {
-    for (j = i+1; j <= g_num_hairpin; j++) {
-      if (strncmp(hairpins[i]->sequence, hairpins[j]->sequence, g_hairpin_length) > 0) {
-	temp = hairpins[i];
-	hairpins[i] = hairpins[j];
-	hairpins[j] = temp;
+  for (int i = 1; i < g_num_hairpin; i++) {
+    for (int j = i+1; j <= g_num_hairpin; j++) {
+      if (strncmp(hairpins[i]->seq, hairpins[j]->seq, g_hairpin_length) > 0) {
+        temp = hairpins[i];
+        hairpins[i] = hairpins[j];
+        hairpins[j] = temp;
       }
     }
   }
@@ -402,13 +395,13 @@ void sort_hairpins(void) {
 
 void process_hairpin_reads(char *filename, char *filename2) {
   FILE *fin = NULL;
-  FILE *finRev = NULL;
+  FILE *fin_rev = NULL;
   char *line = NULL;
   char *line2 = NULL;
   size_t len = 1000;
   char *readline;
   char *readline2;
-  long g_num_read_thisfile = 0;
+  long num_read_this_file = 0;
 
   char *this_barcode_for = NULL;
   char *this_barcode_2 = NULL;
@@ -418,7 +411,7 @@ void process_hairpin_reads(char *filename, char *filename2) {
   line = ALLOC(len+1, char);
   fin = fopen(filename,"r");
   if (g_is_paired_reads > 0) {
-    finRev = fopen(filename2, "r");
+    fin_rev = fopen(filename2, "r");
     line2 = ALLOC(len+1, char);
   }
 
@@ -445,21 +438,21 @@ void process_hairpin_reads(char *filename, char *filename2) {
 
   while ((readline = fgets(line, len, fin)) != NULL) {
     if (g_is_paired_reads > 0) {
-      readline2 = fgets(line2, len, finRev);
-	  if (readline2 == NULL) {
-	    break;
-	  }
+      readline2 = fgets(line2, len, fin_rev);
+      if (readline2 == NULL) {
+        break;
+      }
     }
     line_count++;
     if ((line_count % 4) != 2) {
       continue;
     }
 
-    if ((g_is_verbose > 0) && (g_num_read_thisfile % BLOCKSIZE == 0)) {
-      Rprintf(" -- Processing %d million reads\n", (g_num_read_thisfile / BLOCKSIZE + 1) * 10);
+    if ((g_is_verbose > 0) && (num_read_this_file % BLOCKSIZE == 0)) {
+      Rprintf(" -- Processing %d million reads\n", (num_read_this_file / BLOCKSIZE + 1) * 10);
     }
     g_num_read++;
-    g_num_read_thisfile++;
+    num_read_this_file++;
 
     strncpy(this_barcode_for, line + g_barcode_start - 1, g_barcode_length);
     if (g_is_paired_reads > 0) {
@@ -467,7 +460,7 @@ void process_hairpin_reads(char *filename, char *filename2) {
       barcode_index = locate_barcode_paired(this_barcode_for, this_barcode_rev);
     } else if (g_is_dual_indexing_reads > 0) {
       strncpy(this_barcode_2, line + g_barcode2_start - 1, g_barcode2_length);
-      barcode_index = locate_barcode_dualIndexing(this_barcode_for, this_barcode_2);
+      barcode_index = locate_barcode_dual_indexing(this_barcode_for, this_barcode_2);
     } else {
       barcode_index = locate_barcode(this_barcode_for);
     }
@@ -492,9 +485,9 @@ void process_hairpin_reads(char *filename, char *filename2) {
 
   if (g_is_verbose > 0) {
     if (g_is_paired_reads > 0) {
-      Rprintf("Number of reads in file %s and %s: %ld\n", filename, filename2, g_num_read_thisfile);
+      Rprintf("Number of reads in file %s and %s: %ld\n", filename, filename2, num_read_this_file);
     } else {
-      Rprintf("Number of reads in file %s : %ld\n", filename, g_num_read_thisfile);
+      Rprintf("Number of reads in file %s : %ld\n", filename, num_read_this_file);
     }
   }
 
@@ -504,7 +497,7 @@ void process_hairpin_reads(char *filename, char *filename2) {
   free(this_hairpin);
 
   if (g_is_paired_reads > 0) {
-    fclose(finRev);
+    fclose(fin_rev);
     free(line2);
     free(this_barcode_rev);
   }
@@ -566,13 +559,11 @@ void output_summary_table(char *output) {
 }
 
 void check_hairpins(void) {
-  int p, q;
-  char base;
-  for (p = 1; p <= g_num_hairpin; p++) {
-    for (q = 0; q < g_hairpin_length; q++) {
-      base = hairpins[p]->sequence[q];
+  for (int p = 1; p <= g_num_hairpin; p++) {
+    for (int q = 0; q < g_hairpin_length; q++) {
+      char base = hairpins[p]->seq[q];
       if ((base != 'A') && (base != 'T') && (base != 'G') && (base != 'C')) {
-      	Rprintf("Hairpin no.%d: %s contains invalid base %c\n", p, hairpins[p]->sequence, base);
+      	Rprintf("Hairpin no.%d: %s contains invalid base %c\n", p, hairpins[p]->seq, base);
       }
     }
   }
@@ -580,16 +571,16 @@ void check_hairpins(void) {
 
 void clean_up(void) {
   for (int index = 1; index <= g_num_barcode; index++) {
-    free(barcodes[index]->sequence);
+    free(barcodes[index]->seq1);
     
-    if (g_is_paired_reads > 0) free(barcodes[index]->sequenceRev);
-    if (g_is_dual_indexing_reads > 0) free(barcodes[index]->sequence2);
+    if (g_is_paired_reads > 0) free(barcodes[index]->seq_rev);
+    if (g_is_dual_indexing_reads > 0) free(barcodes[index]->seq2);
 
     free(barcodes[index]);
   }
   
   for (int index = 1; index <= g_num_hairpin; index++) {
-    free(hairpins[index]->sequence);
+    free(hairpins[index]->seq);
     free(hairpins[index]);
   }
 
