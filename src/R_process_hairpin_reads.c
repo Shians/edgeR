@@ -153,8 +153,7 @@ int locate_barcode(char *a_barcode) {
   }
 
   if (g_allow_mismatch > 0) {
-    int i;
-    for (i = 1; i <= g_num_barcode; i++) {
+    for (int i = 1; i <= g_num_barcode; i++) {
       if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length)) {
         return barcodes[i]->original_pos;
       }
@@ -225,8 +224,7 @@ int locate_barcode_dual_indexing(char *a_barcode, char *a_barcode2) {
   }
 
   if (g_allow_mismatch > 0) {
-    int i;
-    for (i = 1; i <= g_num_barcode; i++) {
+    for (int i = 1; i <= g_num_barcode; i++) {
       if (VALID_MATCH(a_barcode, barcodes[i]->seq1, g_barcode_length) &&
 	        VALID_MATCH(a_barcode2, barcodes[i]->seq2, g_barcode2_length)) {
         return barcodes[i]->original_pos;
@@ -257,8 +255,7 @@ int locate_exact_match_hairpin(char *a_hairpin) {
 
 
 int locate_mismatch_hairpin(char *a_hairpin) {
-  int i;
-  for (i = 1; i <= g_num_hairpin; i++) {
+  for (int i = 1; i <= g_num_hairpin; i++) {
     if (VALID_MATCH(a_hairpin, hairpins[i]->seq, g_hairpin_length)) {
       return hairpins[i]->original_pos;
     }
@@ -545,12 +542,11 @@ void initialise(int is_paired, int is_dual_indexing,
 }
 
 void output_summary_table(char *output) {
-  int i, j;
   FILE *fout;
   fout = fopen(output, "w");
-  for (i = 1; i <= g_num_hairpin; i++) {
+  for (int i = 1; i <= g_num_hairpin; i++) {
     fprintf(fout, "%ld", g_summary[i][1]);
-    for (j = 2; j <= g_num_barcode; j++) {
+    for (int j = 2; j <= g_num_barcode; j++) {
       fprintf(fout, "\t%ld", g_summary[i][j]);
     }
     fprintf(fout, "\n");
